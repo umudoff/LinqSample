@@ -18,55 +18,87 @@ using Task.Data;
 
 namespace SampleQueries
 {
-	[Title("LINQ Module")]
-	[Prefix("Linq")]
-	public class LinqSamples : SampleHarness
-	{
+    [Title("LINQ Module")]
+    [Prefix("Linq")]
+    public class LinqSamples : SampleHarness
+    {
 
-		private DataSource dataSource = new DataSource();
+        private DataSource dataSource = new DataSource();
 
-		[Category("Restriction Operators")]
-		[Title("Where - Task 1")]
-		[Description("This sample uses the where clause to find all elements of an array with a value less than 5.")]
-		public void Linq1()
-		{
-			int[] numbers = { 5, 4, 1, 3, 9, 8, 6, 7, 2, 0 };
-
-			var lowNums =
-				from num in numbers
-				where num < 5
-				select num;
-
-			Console.WriteLine("Numbers < 5:");
-			foreach (var x in lowNums)
-			{
-				Console.WriteLine(x);
-			}
-		}
-
-		[Category("Restriction Operators")]
-		[Title("Where - Task 2")]
-		[Description("This sample return return all presented in market products")]
-
-		public void Linq2()
-		{
-			var products =
-				from p in dataSource.Products
-				where p.UnitsInStock > 0
-				select p;
-
-			foreach (var p in products)
-			{
-				ObjectDumper.Write(p);
-			}
-		}
-
-
-
-		public void Linq001()
+        [Category("Restriction Operators")]
+        [Title("Where - Task 1")]
+        [Description("This sample uses the where clause to find all elements of an array with a value less than 5.")]
+        public void Linq1()
         {
+            int[] numbers = { 5, 4, 1, 3, 9, 8, 6, 7, 2, 0 };
 
+            var lowNums =
+                from num in numbers
+                where num < 5
+                select num;
+
+            Console.WriteLine("Numbers < 5:");
+            foreach (var x in lowNums)
+            {
+                Console.WriteLine(x);
+            }
         }
 
-	}
+        [Category("Restriction Operators")]
+        [Title("Where - Task 2")]
+        [Description("This sample return return all presented in market products")]
+
+        public void Linq2()
+        {
+            var products =
+                from p in dataSource.Products
+                where p.UnitsInStock > 0
+                select p;
+
+            foreach (var p in products)
+            {
+                ObjectDumper.Write(p);
+            }
+        }
+
+
+        [Category("LINQ Samples")]
+        [Title("Where - Task 001")]
+        [Description("This sample return return all customers whose order sum exceed X value ")]
+        public void Linq001()
+        {
+            var x = 100000;
+            var customers =
+            (from c in dataSource.Customers
+             where c.Orders.Sum(o => o.Total) > x
+             select new { c.CustomerID, o = c.Orders.Sum( o => o.Total ) });
+
+
+            foreach (var p in customers)
+            {
+                ObjectDumper.Write(p);
+            }
+        }
+
+
+        [Category("LINQ Samples")]
+        [Title("Where - Task 001_MethodBased")]
+        [Description("This sample return return all customers whose order sum exceed X value ")]
+        public void Linq_MethodBased_001()
+        {
+            var x = 5000;
+            var res =
+                  dataSource.Customers.Where(c => c.Orders.Sum(o => o.Total) > x).
+                  Select(c => new { CustId=c.CustomerID, SumCust= c.Orders.Sum(o => o.Total)}); 
+                 
+      
+            foreach (var p in res)
+            {
+                ObjectDumper.Write(p);
+            }
+
+
+        }
+    }
+
 }
