@@ -283,20 +283,23 @@ namespace SampleQueries
         public void Linq_005()
         {
             var res = from s in (from c in dataSource.Customers
-                       select new
-                       {
-                           cust = c.CustomerID,
-                           compName=c.CompanyName,
-                           FirstOrder = (c.Orders.Length == 0) ? DateTime.MinValue : c.Orders.Min(o => o.OrderDate),
-                           SumOrder =c.Orders.Sum(o=> o.Total)
-                            
-                       }
+                                 select new
+                                 {
+                                     cust = c.CustomerID,
+                                     compName = c.CompanyName,
+                                     FirstOrder = (c.Orders.Length == 0) ? DateTime.MinValue : c.Orders.Min(o => o.OrderDate),
+                                     SumOrder = c.Orders.Sum(o => o.Total)
+
+                                 }
                         )
-                       orderby s.SumOrder descending ,s.compName, s.FirstOrder.Year, s.FirstOrder.Month 
-                      select new { name= s.compName, 
-                                   year=s.FirstOrder.Year,
-                                   month=s.FirstOrder.Month, 
-                                   totalOrders= s.SumOrder};
+                      orderby s.SumOrder descending, s.compName, s.FirstOrder.Year, s.FirstOrder.Month
+                      select new
+                      {
+                          name = s.compName,
+                          year = s.FirstOrder.Year,
+                          month = s.FirstOrder.Month,
+                          totalOrders = s.SumOrder
+                      };
 
             foreach (var p in res)
             {
@@ -314,11 +317,11 @@ namespace SampleQueries
         {
             var res = dataSource.Customers.Select(c => new
             {
-                compName=c.CompanyName,
+                compName = c.CompanyName,
                 FirstOrder = (c.Orders.Length == 0) ? DateTime.MinValue : c.Orders.Min(o => o.OrderDate),
-                SumOrder =c.Orders.Sum(o=> o.Total)
-            }).OrderBy(c=> c.compName).ThenBy(c=> c.FirstOrder.Year)
-              .ThenBy(c=> c.FirstOrder.Month).ThenByDescending(c=>c.SumOrder);
+                SumOrder = c.Orders.Sum(o => o.Total)
+            }).OrderBy(c => c.compName).ThenBy(c => c.FirstOrder.Year)
+              .ThenBy(c => c.FirstOrder.Month).ThenByDescending(c => c.SumOrder);
             foreach (var p in res)
             {
                 ObjectDumper.Write(p);
@@ -327,8 +330,286 @@ namespace SampleQueries
 
 
 
+        [Category("LINQ Samples")]
+        [Title("Where - Task 006")]
+        [Description("This sample return all customers with non numeric postcode or empty region or phone has no operator code ")]
+        public void Linq_006()
+        {
+            var res = from c in dataSource.Customers
+                      where c.PostalCode != null && !c.PostalCode.All(char.IsDigit)
+                            || c.Region == null || !c.Phone.StartsWith("(")
+                      select new
+                      {
+                          Name = c.CompanyName,
+                          PostalCode = c.PostalCode,
+                          Region = c.Region,
+                          Phone = c.Phone
+                      };
+            foreach (var p in res)
+            {
+                ObjectDumper.Write(p);
+            }
+        }
+
+
+        [Category("LINQ Samples")]
+        [Title("Where - Task 006_MethodBased")]
+        [Description("This sample return all customers with non numeric postcode or empty region or phone has no operator code ")]
+        public void Linq_006_MethodBased()
+        {
+            var res = dataSource.Customers.Where(c => c.PostalCode != null && !c.PostalCode.All(char.IsDigit) || c.Region == null
+                                || c.Phone.All(ph => ph != '('));
+            foreach (var p in res)
+            {
+                ObjectDumper.Write(p);
+            }
+
+
+        }
+
+
+        [Category("LINQ Samples")]
+        [Title("Where - Task 007")]
+        [Description("Group products by category, whether product presents in stock, order by price")]
+        public void Linq_007()
+        {
+            var res = from p in dataSource.Products
+                      group p by p.Category into CategoryGroups
+                      select new
+                      {
+                          Category = CategoryGroups.Key,
+                          isInStock = from t in CategoryGroups
+                                      group t by t.UnitsInStock into IsInStockGroups
+                                      select new
+                                      {
+                                          UnitIsInStock = IsInStockGroups.Key,
+                                          ProductPrice = IsInStockGroups.OrderBy(o => o.UnitPrice)
+                                      }
+                      };
+
+
+
+            foreach (var p in res)
+            {
+                ObjectDumper.Write("---" + p.Category + "----");
+
+                foreach (var t in p.isInStock)
+                {
+                    ObjectDumper.Write(t.UnitIsInStock);
+
+                    foreach (var k in t.ProductPrice)
+                    {
+                        ObjectDumper.Write(k.ProductName + " -" + k.UnitPrice);
+                    }
+
+                }
+
+            }
+        }
+
+
+
+
+        [Category("LINQ Samples")]
+        [Title("Where - Task 007_MethodBased")]
+        [Description("Group products by category, whether product presents in stock, order by price")]
+        public void Linq_007_MethodBased()
+        {
+            var res = dataSource.Products.GroupBy(p => p.Category).Select(g => new
+            {
+                Category = g.Key,
+                isInStock = g.GroupBy(t => t.UnitsInStock).Select(c => new
+                {
+                    UnitIsInStock = c.Key,
+                    ProductPrice = c.OrderBy(pr => pr.UnitPrice)
+                })
+            });
+
+            foreach (var p in res)
+            {
+                ObjectDumper.Write("---" + p.Category + "----");
+
+                foreach (var t in p.isInStock)
+                {
+                    ObjectDumper.Write(t.UnitIsInStock);
+
+                    foreach (var k in t.ProductPrice)
+                    {
+                        ObjectDumper.Write(k.ProductName + " -" + k.UnitPrice);
+                    }
+
+                }
+
+            }
+        }
+
+
+
+        [Category("LINQ Samples")]
+        [Title("Where - Task 008")]
+        [Description("Group products by  price into cheap, average, expensive categories")]
+        public void Linq_008()
+        {
+           var res= from p in dataSource.Products
+                    group p by  p.UnitPrice <= 10 ? "low" : p.UnitPrice <= 30 ? "average" : "expensive" into PriceGroups
+                    select new
+                    {
+                      PriceCategory=  PriceGroups.Key,
+                      Products= PriceGroups
+                    };
+            foreach (var p in res)
+            {
+                ObjectDumper.Write("---"+p.PriceCategory+"---");
+                foreach (var t in p.Products)
+                {
+                    ObjectDumper.Write(t.ProductName + ": " + t.UnitPrice);
+                }
+            }
+
+          }
+
+        [Category("LINQ Samples")]
+        [Title("Where - Task 008_MethodBased")]
+        [Description("Group products by  price into cheap, average, expensive categories")]
+        public void Linq_008_MethodBased()
+        {
+            var res = dataSource.Products.GroupBy(p => p.UnitPrice <= 10 ? "low" : p.UnitPrice <= 30 ? "average" : "expensive");
+
+            foreach (var p in res)
+            {
+                ObjectDumper.Write("---" + p.Key + "---");
+                foreach (var t in p)
+                {
+                    ObjectDumper.Write(t.ProductName + ": " + t.UnitPrice);
+                }
+            }
+        }
+
+
+
+        [Category("LINQ Samples")]
+        [Title("Where - Task 009")]
+        [Description("Count average Sum for the city, and average intensity of the orders from city ")]
+        public void Linq_009()
+        {
+            var res = dataSource.Customers.GroupBy(c => c.City).Select(g=> new { City=g.Key,
+                                                                            AverageSum= g.Average(t=> t.Orders.Sum(o=> o.Total)),
+                                                                            AverageIntensity= g.Average(t=> t.Orders.Count())});
+            
+            foreach (var p in res)
+            {
+                ObjectDumper.Write(p);
+            }
+
+        }
+
+
+        [Category("LINQ Samples")]
+        [Title("Where - Task 009_MethodBased")]
+        [Description("Count average Sum for the city, and average intensity of the orders from city ")]
+        public void Linq_009_MethodBased()
+        {
+            
+            var res = from c in dataSource.Customers
+                      group c by c.City into g
+                      select new { City=g.Key,
+                      AverageSum= g.Average(t=> t.Orders.Sum(o=>o.Total)),
+                      AverageIntensity=g.Average(t=> t.Orders.Count())};
+
+            foreach (var p in res)
+            {
+                ObjectDumper.Write(p);
+            }
+        }
+
+
+
+        [Category("LINQ Samples")]
+        [Title("Where - Task 010")]
+        [Description("Count average client activity by months, by years, by year and months, ")]
+        public void Linq_010()
+        {
+            var res = from c in dataSource.Customers
+                      select new
+                      {
+                          Name = c.CompanyName,
+                          MonthlyActivity = c.Orders.GroupBy(o => o.OrderDate.ToString("MMMM")).Select(g => new { Months = g.Key, AverageActivity = g.Count() }),
+                          YearlyActivity = c.Orders.GroupBy(o => o.OrderDate.Year).Select(g => new { Years = g.Key, AverageActivity = g.Count() }),
+                          YearlyMonthlyActivity = c.Orders.GroupBy(o => new { Year = o.OrderDate.Year, Month = o.OrderDate.ToString("MMMM") }).Select(g => new
+                          {
+                              Year = g.Key.Year,
+                              Month = g.Key.Month,
+                              AverageActivity = g.Count()
+                          })
+                      };
+            foreach (var p in res)
+            {
+                ObjectDumper.Write("---" + p.Name + "---");
+                foreach (var t in p.MonthlyActivity)
+                {
+                    ObjectDumper.Write("By Month: " + t.Months + " : " + t.AverageActivity);
+                }
+
+                foreach (var t in p.YearlyActivity)
+                {
+                    ObjectDumper.Write("By Years: " + t.Years + " : " + t.AverageActivity);
+                }
+
+                foreach (var t in p.YearlyMonthlyActivity)
+                {
+                    ObjectDumper.Write("By Year and Month: " + t.Year + " - " + t.Month + " : " + t.AverageActivity);
+                }
+
+            }
+        }
+
+
+
+            [Category("LINQ Samples")]
+        [Title("Where - Task 010_MethodBased")]
+        [Description("Count average client activity by months, by years, by year and months, ")]
+        public void Linq_010_MethodBased()
+        {
+
+            var res = dataSource.Customers.Select(c => new
+            {
+                c.CompanyName,
+                MonthlyActivity = c.Orders.GroupBy(o => o.OrderDate.ToString("MMMM")).Select(g => new { Months = g.Key, AverageActivity = g.Count() }),
+                YearlyActivity = c.Orders.GroupBy(o => o.OrderDate.Year).Select(g => new { Years = g.Key, AverageActivity = g.Count() }),
+                YearlyMonthlyActivity = c.Orders.GroupBy(o => new { Year= o.OrderDate.Year, Month=o.OrderDate.ToString("MMMM") }).Select(g=> new { Year = g.Key.Year,
+                                                                                                                                                   Month =g.Key.Month,
+                                                                                                                                                   AverageActivity= g.Count() })
+            }) ;
+
+
+
+            foreach (var p in res)
+            {
+                ObjectDumper.Write("---"+p.CompanyName+"---");
+                foreach (var t in p.MonthlyActivity)
+                {
+                    ObjectDumper.Write("By Month: "+t.Months+" : "+t.AverageActivity);
+                }
+
+                foreach (var t in p.YearlyActivity)
+                {
+                    ObjectDumper.Write("By Years: " + t.Years + " : " + t.AverageActivity);
+                }
+
+                foreach (var t in p.YearlyMonthlyActivity)
+                {
+                    ObjectDumper.Write("By Year and Month: " + t.Year +" - " +t.Month+ " : " + t.AverageActivity);
+                }
+
+            }
+        }
+
+
+
+
     }
 
 
 
-}
+ }
+
